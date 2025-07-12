@@ -6,26 +6,17 @@ import 'package:petzyadmin/bloc/category_event.dart';
 import 'package:petzyadmin/bloc/category_state.dart';
 import 'package:petzyadmin/core/colors.dart';
 
-class AddCategoryPage extends StatefulWidget {
-  const AddCategoryPage({super.key});
+class AddCategoryPage extends StatelessWidget {
+  AddCategoryPage({super.key});
 
-  @override
-  State<AddCategoryPage> createState() => _AddCategoryPageState();
-}
-
-class _AddCategoryPageState extends State<AddCategoryPage> {
   final TextEditingController _controller = TextEditingController();
+  final TextEditingController _searchController = TextEditingController();
 
-  @override
-  void initState() {
-    context.read<CategoryBloc>().add(LoadCategoriesEvent());
-    super.initState();
-  }
-
-  void _editCategory(DocumentSnapshot doc) {
+  void _showEditDialog(BuildContext context, DocumentSnapshot doc) {
     final TextEditingController editController = TextEditingController(
       text: doc['name'],
     );
+
     showDialog(
       context: context,
       builder:
@@ -57,7 +48,7 @@ class _AddCategoryPageState extends State<AddCategoryPage> {
     );
   }
 
-  void _deleteCategory(DocumentSnapshot doc) {
+  void _showDeleteDialog(BuildContext context, DocumentSnapshot doc) {
     showDialog(
       context: context,
       builder:
@@ -88,19 +79,22 @@ class _AddCategoryPageState extends State<AddCategoryPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Dispatch LoadCategories only once
+    context.read<CategoryBloc>().add(LoadCategoriesEvent());
+
     return Scaffold(
       backgroundColor: whiteColor,
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            // Add New Category
+            /// Add New Category
             Row(
               children: [
                 Expanded(
                   child: TextField(
                     controller: _controller,
-                    decoration: InputDecoration(
+                    decoration: const InputDecoration(
                       hintText: "Enter category name",
                       border: OutlineInputBorder(),
                     ),
@@ -109,10 +103,9 @@ class _AddCategoryPageState extends State<AddCategoryPage> {
                 const SizedBox(width: 8),
                 ElevatedButton(
                   onPressed: () {
-                    if (_controller.text.trim().isNotEmpty) {
-                      context.read<CategoryBloc>().add(
-                        AddCategoryEvent(_controller.text.trim()),
-                      );
+                    final name = _controller.text.trim();
+                    if (name.isNotEmpty) {
+                      context.read<CategoryBloc>().add(AddCategoryEvent(name));
                       _controller.clear();
                     }
                   },
@@ -120,21 +113,26 @@ class _AddCategoryPageState extends State<AddCategoryPage> {
                 ),
               ],
             ),
+
             const SizedBox(height: 20),
 
-            // Search Field
+            /// Search Field
             TextField(
+              controller: _searchController,
               decoration: const InputDecoration(
                 prefixIcon: Icon(Icons.search),
                 hintText: 'Search categories...',
               ),
               onChanged: (value) {
-                context.read<CategoryBloc>().add(SearchCategoryEvent(value));
+                context.read<CategoryBloc>().add(
+                  SearchCategoryEvent(value.trim()),
+                );
               },
             ),
+
             const SizedBox(height: 20),
 
-            // Category List
+            /// Category List
             Expanded(
               child: BlocBuilder<CategoryBloc, CategoryState>(
                 builder: (context, state) {
@@ -172,14 +170,15 @@ class _AddCategoryPageState extends State<AddCategoryPage> {
                                   Icons.edit,
                                   color: Colors.orange,
                                 ),
-                                onPressed: () => _editCategory(doc),
+                                onPressed: () => _showEditDialog(context, doc),
                               ),
                               IconButton(
                                 icon: const Icon(
                                   Icons.delete,
                                   color: Colors.red,
                                 ),
-                                onPressed: () => _deleteCategory(doc),
+                                onPressed:
+                                    () => _showDeleteDialog(context, doc),
                               ),
                             ],
                           ),

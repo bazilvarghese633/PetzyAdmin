@@ -1,82 +1,93 @@
-import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:petzyadmin/bloc/dashboard_bloc.dart';
 import 'package:petzyadmin/core/colors.dart';
 import 'package:petzyadmin/screens/add_category.dart';
 import 'package:petzyadmin/screens/add_products.dart';
 import 'package:petzyadmin/screens/home.dart';
 import 'package:petzyadmin/screens/product_list.dart';
-// ✅ import
+import 'package:petzyadmin/widgets/shimmer.dart';
 
-class AdminDashboard extends StatefulWidget {
-  const AdminDashboard({super.key});
-
-  @override
-  State<AdminDashboard> createState() => _AdminDashboardState();
-}
-
-class _AdminDashboardState extends State<AdminDashboard> {
-  int _selectedIndex = 0;
+class AdminDashboard extends StatelessWidget {
+  AdminDashboard({super.key});
 
   final List<Widget> _screens = [
     UsersListPage(),
     AddCategoryPage(),
     AddProductPage(),
-    ProductListPage(), // ✅ added
+    ProductListPage(),
   ];
 
   final List<String> _titles = [
     'All Users',
     'Add Category',
     'Add Product',
-    'My Products', // ✅ added
+    'My Products',
   ];
 
   Future<void> _signOut() async {
     await FirebaseAuth.instance.signOut();
   }
 
-  void _onItemTapped(int index) {
-    setState(() => _selectedIndex = index);
-  }
-
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: whiteColor,
-      appBar: AppBar(
-        title: Text(_titles[_selectedIndex]),
-        backgroundColor: primaryColor,
-        centerTitle: true,
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: _signOut,
-            tooltip: 'Sign Out',
-            color: whiteColor,
-          ),
-        ],
-      ),
-      body: _screens[_selectedIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: whiteColor,
-        selectedItemColor: primaryColor,
-        unselectedItemColor: greyColor,
-        currentIndex: _selectedIndex,
-        onTap: _onItemTapped,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Users'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.category),
-            label: 'Category',
-          ),
-          BottomNavigationBarItem(icon: Icon(Icons.add_box), label: 'Product'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.list_alt),
-            label: 'My Products',
-          ), // ✅ added
-        ],
+    return BlocProvider(
+      create: (_) => DashboardBloc(),
+      child: BlocBuilder<DashboardBloc, DashboardState>(
+        builder: (context, state) {
+          final selectedIndex = state.selectedIndex;
+
+          return Scaffold(
+            backgroundColor: whiteColor,
+            appBar: AppBar(
+              title: Text(_titles[selectedIndex]),
+              backgroundColor: primaryColor,
+              centerTitle: true,
+              elevation: 0,
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.logout),
+                  onPressed: _signOut,
+                  tooltip: 'Sign Out',
+                  color: whiteColor,
+                ),
+              ],
+            ),
+            body:
+                state.isLoading
+                    ? const ShimmerPlaceholder()
+                    : _screens[selectedIndex],
+            bottomNavigationBar: BottomNavigationBar(
+              type: BottomNavigationBarType.fixed,
+              backgroundColor: whiteColor,
+              selectedItemColor: primaryColor,
+              unselectedItemColor: greyColor,
+              currentIndex: selectedIndex,
+              onTap: (index) {
+                context.read<DashboardBloc>().add(DashboardTabChanged(index));
+              },
+              items: const [
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.person),
+                  label: 'Users',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.category),
+                  label: 'Category',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.add_box),
+                  label: 'Product',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.list_alt),
+                  label: 'My Products',
+                ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
