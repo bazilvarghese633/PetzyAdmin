@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
@@ -8,6 +8,7 @@ import 'package:petzyadmin/bloc/product_event.dart';
 import 'package:petzyadmin/bloc/product_form/product_form_cubit.dart';
 import 'package:petzyadmin/bloc/product_state.dart';
 import 'package:petzyadmin/core/colors.dart';
+import 'package:petzyadmin/widgets/responsive.dart';
 
 class AddProductPage extends StatelessWidget {
   AddProductPage({super.key});
@@ -22,13 +23,16 @@ class AddProductPage extends StatelessWidget {
   Future<void> _pickMultipleImages(BuildContext context) async {
     final pickedFiles = await _picker.pickMultiImage();
     if (pickedFiles.isNotEmpty) {
-      final imageFiles = pickedFiles.map((e) => File(e.path)).toList();
-      context.read<ProductFormCubit>().setImages(imageFiles);
+      final imageBytes = await Future.wait(
+        pickedFiles.map((f) => f.readAsBytes()),
+      );
+      final imageNames = pickedFiles.map((f) => f.name).toList();
+      context.read<ProductFormCubit>().setImageBytes(imageBytes, imageNames);
     }
   }
 
   void _submitProduct(BuildContext context, ProductFormState formState) {
-    if (!_formKey.currentState!.validate() || formState.imageFiles.isEmpty) {
+    if (!_formKey.currentState!.validate() || formState.imageBytes.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Please fill all required fields and add images'),
@@ -36,7 +40,6 @@ class AddProductPage extends StatelessWidget {
       );
       return;
     }
-
     context.read<AddProductBloc>().add(
       AddProductSubmitted(
         name: nameController.text.trim(),
@@ -45,25 +48,136 @@ class AddProductPage extends StatelessWidget {
         quantity: int.tryParse(quantityController.text) ?? 0,
         unit: formState.selectedUnit!,
         category: formState.selectedCategory!,
-        images: formState.imageFiles,
+        imageBytes: formState.imageBytes,
+        imageNames: formState.imageNames,
       ),
     );
   }
 
-  InputDecoration _inputDecoration(String label) {
-    return InputDecoration(
-      labelText: label,
-      filled: true,
-      fillColor: Colors.white,
-      contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-      enabledBorder: OutlineInputBorder(
-        borderSide: const BorderSide(color: primaryColor, width: 1.5),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderSide: const BorderSide(color: primaryColor, width: 2),
-        borderRadius: BorderRadius.circular(10),
+  InputDecoration _decoration(String label) => InputDecoration(
+    labelText: label,
+    filled: true,
+    fillColor: Colors.white,
+    contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+    enabledBorder: OutlineInputBorder(
+      borderSide: const BorderSide(color: primaryColor, width: 1.5),
+      borderRadius: BorderRadius.circular(10),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderSide: const BorderSide(color: primaryColor, width: 2),
+      borderRadius: BorderRadius.circular(10),
+    ),
+  );
+
+  Widget _buildForm(BuildContext context, ProductFormState formState) {
+    return Form(
+      key: _formKey,
+      child: Column(
+        children: [
+          TextFormField(
+            controller: nameController,
+            decoration: _decoration('Product Name'),
+            validator: (v) => v!.isEmpty ? 'Enter product name' : null,
+          ),
+          const SizedBox(height: 10),
+          TextFormField(
+            controller: descriptionController,
+            decoration: _decoration('Description'),
+            maxLines: 3,
+          ),
+          const SizedBox(height: 10),
+          TextFormField(
+            controller: priceController,
+            keyboardType: TextInputType.number,
+            decoration: _decoration('Price'),
+            validator: (v) => v!.isEmpty ? 'Enter price' : null,
+          ),
+          const SizedBox(height: 10),
+          TextFormField(
+            controller: quantityController,
+            keyboardType: TextInputType.number,
+            decoration: _decoration('Available Quantity'),
+            validator: (v) => v!.isEmpty ? 'Enter quantity' : null,
+          ),
+          const SizedBox(height: 10),
+          DropdownButtonFormField<String>(
+            value: formState.selectedUnit,
+            decoration: _decoration("Unit"),
+            hint: const Text("Select Unit"),
+            validator: (v) => v == null ? 'Select unit' : null,
+            onChanged: (v) => context.read<ProductFormCubit>().setUnit(v),
+            items:
+                ['per gram', 'per packet', 'per pair', 'per item']
+                    .map((u) => DropdownMenuItem(value: u, child: Text(u)))
+                    .toList(),
+          ),
+          const SizedBox(height: 10),
+          StreamBuilder<QuerySnapshot>(
+            stream:
+                FirebaseFirestore.instance.collection('categories').snapshots(),
+            builder: (_, snapshot) {
+              if (!snapshot.hasData) return const CircularProgressIndicator();
+              final categories =
+                  snapshot.data!.docs.map((d) => d['name'] as String).toList();
+              return DropdownButtonFormField<String>(
+                value: formState.selectedCategory,
+                decoration: _decoration("Category"),
+                hint: const Text("Select Category"),
+                validator: (v) => v == null ? 'Select category' : null,
+                onChanged:
+                    (v) => context.read<ProductFormCubit>().setCategory(v),
+                items:
+                    categories
+                        .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+                        .toList(),
+              );
+            },
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton.icon(
+            onPressed: () => _pickMultipleImages(context),
+            icon: const Icon(Icons.image),
+            label: const Text("Select Images"),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: primaryColor,
+              foregroundColor: whiteColor,
+            ),
+          ),
+          const SizedBox(height: 10),
+          formState.imageBytes.isNotEmpty
+              ? SizedBox(
+                height: 100,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: formState.imageBytes.length,
+                  separatorBuilder: (_, __) => const SizedBox(width: 8),
+                  itemBuilder:
+                      (_, i) => Image.memory(
+                        formState.imageBytes[i],
+                        width: 100,
+                        fit: BoxFit.cover,
+                      ),
+                ),
+              )
+              : const Text(
+                "No images selected",
+                style: TextStyle(color: greyColor),
+              ),
+          const SizedBox(height: 24),
+          ElevatedButton(
+            onPressed: () => _submitProduct(context, formState),
+            child: const Text("Add Product"),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: primaryColor,
+              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 24),
+              textStyle: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -78,7 +192,6 @@ class AddProductPage extends StatelessWidget {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('Product added successfully')),
             );
-
             nameController.clear();
             descriptionController.clear();
             priceController.clear();
@@ -99,170 +212,34 @@ class AddProductPage extends StatelessWidget {
                   child: CircularProgressIndicator(color: primaryColor),
                 );
               }
-
               return BlocBuilder<ProductFormCubit, ProductFormState>(
                 builder: (context, formState) {
-                  return SingleChildScrollView(
-                    padding: const EdgeInsets.all(16),
-                    child: Form(
-                      key: _formKey,
-                      child: Column(
-                        children: [
-                          TextFormField(
-                            controller: nameController,
-                            decoration: _inputDecoration('Product Name'),
-                            validator:
-                                (value) =>
-                                    value == null || value.isEmpty
-                                        ? 'Enter product name'
-                                        : null,
-                          ),
-                          const SizedBox(height: 10),
-                          TextFormField(
-                            controller: descriptionController,
-                            decoration: _inputDecoration('Description'),
-                            maxLines: 3,
-                          ),
-                          const SizedBox(height: 10),
-                          TextFormField(
-                            controller: priceController,
-                            keyboardType: TextInputType.number,
-                            decoration: _inputDecoration('Price'),
-                            validator:
-                                (value) =>
-                                    value == null || value.isEmpty
-                                        ? 'Enter price'
-                                        : null,
-                          ),
-                          const SizedBox(height: 10),
-                          TextFormField(
-                            controller: quantityController,
-                            keyboardType: TextInputType.number,
-                            decoration: _inputDecoration('Available Quantity'),
-                            validator:
-                                (value) =>
-                                    value == null || value.isEmpty
-                                        ? 'Enter quantity'
-                                        : null,
-                          ),
-                          const SizedBox(height: 10),
-                          DropdownButtonFormField<String>(
-                            value: formState.selectedUnit,
-                            decoration: _inputDecoration("Unit"),
-                            hint: const Text("Select Unit"),
-                            validator:
-                                (value) => value == null ? 'Select unit' : null,
-                            onChanged:
-                                (value) => context
-                                    .read<ProductFormCubit>()
-                                    .setUnit(value),
-                            items:
-                                [
-                                      'per gram',
-                                      'per packet',
-                                      'per pair',
-                                      'per item',
-                                    ]
-                                    .map(
-                                      (unit) => DropdownMenuItem(
-                                        value: unit,
-                                        child: Text(unit),
-                                      ),
-                                    )
-                                    .toList(),
-                          ),
-                          const SizedBox(height: 10),
-                          StreamBuilder<QuerySnapshot>(
-                            stream:
-                                FirebaseFirestore.instance
-                                    .collection('categories')
-                                    .snapshots(),
-                            builder: (context, snapshot) {
-                              if (!snapshot.hasData) {
-                                return const CircularProgressIndicator();
-                              }
-
-                              final categories =
-                                  snapshot.data!.docs
-                                      .map((doc) => doc['name'] as String)
-                                      .toList();
-
-                              return DropdownButtonFormField<String>(
-                                value: formState.selectedCategory,
-                                decoration: _inputDecoration("Category"),
-                                hint: const Text("Select Category"),
-                                validator:
-                                    (value) =>
-                                        value == null
-                                            ? 'Select category'
-                                            : null,
-                                onChanged:
-                                    (value) => context
-                                        .read<ProductFormCubit>()
-                                        .setCategory(value),
-                                items:
-                                    categories
-                                        .map(
-                                          (cat) => DropdownMenuItem(
-                                            value: cat,
-                                            child: Text(cat),
-                                          ),
-                                        )
-                                        .toList(),
-                              );
-                            },
-                          ),
-                          const SizedBox(height: 16),
-                          ElevatedButton.icon(
-                            onPressed: () => _pickMultipleImages(context),
-                            icon: const Icon(Icons.image),
-                            label: const Text("Select Images"),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: primaryColor,
-                              foregroundColor: whiteColor,
+                  return ResponsiveLayout(
+                    mobile:
+                        (_) => SingleChildScrollView(
+                          padding: const EdgeInsets.all(16),
+                          child: _buildForm(context, formState),
+                        ),
+                    tablet:
+                        (_) => Center(
+                          child: SizedBox(
+                            width: 500,
+                            child: SingleChildScrollView(
+                              padding: const EdgeInsets.all(24),
+                              child: _buildForm(context, formState),
                             ),
                           ),
-                          const SizedBox(height: 10),
-                          if (formState.imageFiles.isNotEmpty)
-                            SizedBox(
-                              height: 100,
-                              child: ListView.separated(
-                                scrollDirection: Axis.horizontal,
-                                itemCount: formState.imageFiles.length,
-                                separatorBuilder:
-                                    (_, __) => const SizedBox(width: 8),
-                                itemBuilder:
-                                    (context, index) => Image.file(
-                                      formState.imageFiles[index],
-                                      width: 100,
-                                      fit: BoxFit.cover,
-                                    ),
-                              ),
-                            )
-                          else
-                            const Text(
-                              "No images selected",
-                              style: TextStyle(color: greyColor),
-                            ),
-                          const SizedBox(height: 24),
-                          ElevatedButton(
-                            onPressed: () => _submitProduct(context, formState),
-                            child: const Text("Add Product"),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: primaryColor,
-                              padding: const EdgeInsets.symmetric(
-                                vertical: 14,
-                                horizontal: 24,
-                              ),
-                              textStyle: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                              ),
+                        ),
+                    desktop:
+                        (_) => Center(
+                          child: SizedBox(
+                            width: 700,
+                            child: SingleChildScrollView(
+                              padding: const EdgeInsets.all(32),
+                              child: _buildForm(context, formState),
                             ),
                           ),
-                        ],
-                      ),
-                    ),
+                        ),
                   );
                 },
               );

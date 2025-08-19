@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'dart:typed_data';
 import 'package:equatable/equatable.dart';
 
 abstract class AddProductEvent extends Equatable {
@@ -13,7 +13,8 @@ class AddProductSubmitted extends AddProductEvent {
   final int quantity;
   final String unit;
   final String category;
-  final List<File> images;
+  final List<Uint8List> imageBytes;
+  final List<String> imageNames;
 
   AddProductSubmitted({
     required this.name,
@@ -22,7 +23,8 @@ class AddProductSubmitted extends AddProductEvent {
     required this.quantity,
     required this.unit,
     required this.category,
-    required this.images,
+    required this.imageBytes,
+    required this.imageNames,
   });
 
   @override
@@ -33,6 +35,7 @@ class AddProductSubmitted extends AddProductEvent {
     quantity,
     unit,
     category,
-    images,
+    imageBytes,
+    imageNames,
   ];
 }

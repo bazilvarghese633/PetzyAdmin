@@ -8,6 +8,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:petzyadmin/core/colors.dart';
 import 'package:petzyadmin/screens/product_details.dart';
 import 'package:petzyadmin/bloc/product_search_cubit.dart';
+import 'package:petzyadmin/widgets/shimmer.dart';
 import 'package:shimmer/shimmer.dart';
 
 class ProductListPage extends StatelessWidget {
@@ -56,6 +57,10 @@ class ProductListPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final productsRef = FirebaseFirestore.instance.collection('products');
+    final isMobile = MediaQuery.of(context).size.width < 600;
+    final isTablet =
+        MediaQuery.of(context).size.width >= 600 &&
+        MediaQuery.of(context).size.width < 1024;
 
     return BlocProvider(
       create: (_) => ProductSearchCubit(),
@@ -63,6 +68,7 @@ class ProductListPage extends StatelessWidget {
         backgroundColor: whiteColor,
         body: Column(
           children: [
+            // 🔍 Search bar
             Padding(
               padding: const EdgeInsets.all(12),
               child: BlocBuilder<ProductSearchCubit, String>(
@@ -86,6 +92,8 @@ class ProductListPage extends StatelessWidget {
                 },
               ),
             ),
+
+            // 📦 Products list
             Expanded(
               child: BlocBuilder<ProductSearchCubit, String>(
                 builder: (context, searchQuery) {
@@ -104,9 +112,7 @@ class ProductListPage extends StatelessWidget {
                         );
                       }
                       if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const Center(
-                          child: CircularProgressIndicator(color: primaryColor),
-                        );
+                        return const ShimmerPlaceholder();
                       }
 
                       final docs = snapshot.data?.docs ?? [];
@@ -116,8 +122,8 @@ class ProductListPage extends StatelessWidget {
                             final name = (data['name'] ?? '').toLowerCase();
                             final category =
                                 (data['category'] ?? '').toLowerCase();
-                            return name.contains(searchQuery) ||
-                                category.contains(searchQuery);
+                            return name.contains(searchQuery.toLowerCase()) ||
+                                category.contains(searchQuery.toLowerCase());
                           }).toList();
 
                       if (filteredDocs.isEmpty) {
@@ -129,129 +135,150 @@ class ProductListPage extends StatelessWidget {
                         );
                       }
 
-                      return ListView.separated(
-                        padding: const EdgeInsets.all(16),
-                        itemCount: filteredDocs.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 12),
-                        itemBuilder: (context, index) {
-                          final doc = filteredDocs[index];
-                          final data = doc.data() as Map<String, dynamic>;
-                          final images = List<String>.from(
-                            data['images'] ?? [],
-                          );
-                          final firstImage = images.isNotEmpty ? images[0] : '';
-
-                          return InkWell(
-                            onTap:
-                                () => Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder:
-                                        (_) => ProductDetailPage(
-                                          productData: {...data, 'id': doc.id},
-                                        ),
-                                  ),
-                                ),
-                            child: Card(
-                              color: whiteColor,
-                              elevation: 3,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(15),
+                      // 🔥 Responsive: Grid for tablet/desktop, List for mobile
+                      if (isMobile) {
+                        return ListView.separated(
+                          padding: const EdgeInsets.all(16),
+                          itemCount: filteredDocs.length,
+                          separatorBuilder:
+                              (_, __) => const SizedBox(height: 12),
+                          itemBuilder:
+                              (context, index) => _buildProductCard(
+                                context,
+                                filteredDocs[index],
                               ),
-                              child: ListTile(
-                                leading:
-                                    firstImage.isNotEmpty
-                                        ? ClipRRect(
-                                          borderRadius: BorderRadius.circular(
-                                            8,
-                                          ),
-                                          child: SizedBox(
-                                            width: 60,
-                                            height: 60,
-                                            child: Stack(
-                                              children: [
-                                                // Shimmer background
-                                                Shimmer.fromColors(
-                                                  baseColor: Colors.grey[300]!,
-                                                  highlightColor:
-                                                      Colors.grey[100]!,
-                                                  child: Container(
-                                                    width: 60,
-                                                    height: 60,
-                                                    color: Colors.white,
-                                                  ),
-                                                ),
-                                                // Network image
-                                                Image.network(
-                                                  firstImage,
-                                                  width: 60,
-                                                  height: 60,
-                                                  fit: BoxFit.cover,
-                                                  loadingBuilder: (
-                                                    context,
-                                                    child,
-                                                    loadingProgress,
-                                                  ) {
-                                                    if (loadingProgress == null)
-                                                      return child;
-                                                    return const SizedBox(); // Keep shimmer until fully loaded
-                                                  },
-                                                  errorBuilder:
-                                                      (
-                                                        context,
-                                                        error,
-                                                        stackTrace,
-                                                      ) => const Icon(
-                                                        Icons.broken_image,
-                                                        size: 40,
-                                                      ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        )
-                                        : const Icon(Icons.image),
-
-                                title: Text(
-                                  data['name'],
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: secondaryColor,
-                                  ),
-                                ),
-                                subtitle: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Category: ${data['category']}',
-                                      style: TextStyle(color: greyColor),
-                                    ),
-                                    Text(
-                                      '₹ ${data['price']} | ${data['quantity']} ${(data['unit'] ?? '').replaceFirst(RegExp(r'^per\s*', caseSensitive: false), '')}',
-
-                                      style: TextStyle(color: primaryColor),
-                                    ),
-                                  ],
-                                ),
-                                trailing: IconButton(
-                                  icon: const Icon(
-                                    Icons.delete,
-                                    color: Colors.red,
-                                  ),
-                                  onPressed:
-                                      () => _deleteProduct(context, doc.id),
-                                ),
+                        );
+                      } else {
+                        return GridView.builder(
+                          padding: const EdgeInsets.all(16),
+                          itemCount: filteredDocs.length,
+                          gridDelegate:
+                              SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: isTablet ? 2 : 3,
+                                crossAxisSpacing: 16,
+                                mainAxisSpacing: 16,
+                                childAspectRatio: 3,
                               ),
-                            ),
-                          );
-                        },
-                      );
+                          itemBuilder:
+                              (context, index) => _buildProductCard(
+                                context,
+                                filteredDocs[index],
+                              ),
+                        );
+                      }
                     },
                   );
                 },
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  // 🛠 Product Card widget (with shimmer for image loading)
+  Widget _buildProductCard(BuildContext context, QueryDocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+    final images = List<String>.from(data['images'] ?? []);
+    final firstImage = images.isNotEmpty ? images[0] : '';
+
+    return InkWell(
+      onTap:
+          () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder:
+                  (_) =>
+                      ProductDetailPage(productData: {...data, 'id': doc.id}),
+            ),
+          ),
+      child: Card(
+        color: whiteColor,
+        elevation: 3,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            children: [
+              // 🖼 Image with shimmer effect
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: SizedBox(
+                  width: 70,
+                  height: 70,
+                  child:
+                      firstImage.isNotEmpty
+                          ? Stack(
+                            children: [
+                              // Shimmer background
+                              Shimmer.fromColors(
+                                baseColor: Colors.grey[300]!,
+                                highlightColor: Colors.grey[100]!,
+                                child: Container(
+                                  width: 70,
+                                  height: 70,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              // Actual image
+                              Image.network(
+                                firstImage,
+                                width: 70,
+                                height: 70,
+                                fit: BoxFit.cover,
+                                loadingBuilder: (
+                                  context,
+                                  child,
+                                  loadingProgress,
+                                ) {
+                                  if (loadingProgress == null) return child;
+                                  return const SizedBox(); // shimmer stays
+                                },
+                                errorBuilder:
+                                    (_, __, ___) => const Icon(
+                                      Icons.broken_image,
+                                      size: 40,
+                                    ),
+                              ),
+                            ],
+                          )
+                          : const Icon(Icons.image, size: 40),
+                ),
+              ),
+              const SizedBox(width: 12),
+
+              // 📑 Info
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      data['name'],
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: secondaryColor,
+                      ),
+                    ),
+                    Text(
+                      'Category: ${data['category']}',
+                      style: TextStyle(color: greyColor),
+                    ),
+                    Text(
+                      '₹ ${data['price']} | ${data['quantity']} ${(data['unit'] ?? '').replaceFirst(RegExp(r'^per\s*', caseSensitive: false), '')}',
+                      style: TextStyle(color: primaryColor),
+                    ),
+                  ],
+                ),
+              ),
+
+              // 🗑 Delete button
+              IconButton(
+                icon: const Icon(Icons.delete, color: Colors.red),
+                onPressed: () => _deleteProduct(context, doc.id),
+              ),
+            ],
+          ),
         ),
       ),
     );

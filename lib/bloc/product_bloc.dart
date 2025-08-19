@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:http/http.dart' as http;
@@ -19,7 +19,10 @@ class AddProductBloc extends Bloc<AddProductEvent, AddProductState> {
     emit(AddProductLoading());
 
     try {
-      final imageUrls = await _uploadImagesToCloudinary(event.images);
+      final imageUrls = await _uploadImagesToCloudinary(
+        event.imageBytes,
+        event.imageNames,
+      );
 
       await FirebaseFirestore.instance.collection('products').add({
         'name': event.name,
@@ -38,7 +41,10 @@ class AddProductBloc extends Bloc<AddProductEvent, AddProductState> {
     }
   }
 
-  Future<List<String>> _uploadImagesToCloudinary(List<File> files) async {
+  Future<List<String>> _uploadImagesToCloudinary(
+    List<Uint8List> imageBytesList,
+    List<String> imageNames,
+  ) async {
     const cloudName = 'dravgdklo';
     const uploadPreset = 'petzyprofile';
     final url = Uri.parse(
@@ -47,11 +53,20 @@ class AddProductBloc extends Bloc<AddProductEvent, AddProductState> {
 
     List<String> imageUrls = [];
 
-    for (var file in files) {
+    for (int i = 0; i < imageBytesList.length; i++) {
+      final imageBytes = imageBytesList[i];
+      final imageName = imageNames[i];
+
       final request =
           http.MultipartRequest('POST', url)
             ..fields['upload_preset'] = uploadPreset
-            ..files.add(await http.MultipartFile.fromPath('file', file.path));
+            ..files.add(
+              http.MultipartFile.fromBytes(
+                'file',
+                imageBytes,
+                filename: imageName,
+              ),
+            );
 
       final response = await request.send();
 

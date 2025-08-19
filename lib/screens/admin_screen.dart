@@ -1,11 +1,13 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:petzyadmin/bloc/admin_orders_bloc.dart';
 import 'package:petzyadmin/bloc/dashboard_bloc.dart';
 import 'package:petzyadmin/core/colors.dart';
 import 'package:petzyadmin/screens/add_category.dart';
 import 'package:petzyadmin/screens/add_products.dart';
 import 'package:petzyadmin/screens/home.dart';
+import 'package:petzyadmin/screens/orders_screen.dart';
 import 'package:petzyadmin/screens/product_list.dart';
 import 'package:petzyadmin/widgets/shimmer.dart';
 
@@ -14,18 +16,23 @@ class AdminDashboard extends StatelessWidget {
 
   final List<Widget> _screens = [
     UsersListPage(),
+    BlocProvider(
+      create: (_) => AdminOrdersBloc(),
+      child: const AdminOrdersScreen(),
+    ),
     AddCategoryPage(),
     AddProductPage(),
     ProductListPage(),
   ];
 
+  // Update the _titles list
   final List<String> _titles = [
     'All Users',
+    'Orders Management', // 👈 NEW
     'Add Category',
     'Add Product',
     'My Products',
   ];
-
   Future<void> _signOut() async {
     await FirebaseAuth.instance.signOut();
   }
@@ -71,6 +78,11 @@ class AdminDashboard extends StatelessWidget {
                 BottomNavigationBarItem(
                   icon: Icon(Icons.person),
                   label: 'Users',
+                ),
+                BottomNavigationBarItem(
+                  // 👈 NEW
+                  icon: Icon(Icons.shopping_bag),
+                  label: 'Orders',
                 ),
                 BottomNavigationBarItem(
                   icon: Icon(Icons.category),
