@@ -4,9 +4,9 @@ import 'package:petzyadmin/bloc/admin_orders_bloc.dart';
 import 'package:petzyadmin/bloc/admin_orders_event.dart';
 import 'package:petzyadmin/bloc/admin_orders_filter_bloc.dart';
 import 'package:petzyadmin/core/colors.dart';
-import 'package:petzyadmin/widgets/admin_orders_filter_widget.dart';
-import 'package:petzyadmin/widgets/admin_orders_list.dart';
-import 'package:petzyadmin/widgets/responsive.dart';
+import 'widgets/admin_orders_filter.dart';
+import 'widgets/admin_orders_list.dart';
+import 'package:petzyadmin/widgets/common/responsive_layout.dart';
 
 class AdminOrdersScreen extends StatefulWidget {
   const AdminOrdersScreen({super.key});

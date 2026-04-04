@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:petzyadmin/core/colors.dart';
-import 'package:petzyadmin/widgets/responsive.dart';
-import 'package:petzyadmin/widgets/shimmer.dart';
+import 'package:petzyadmin/widgets/common/responsive_layout.dart';
+import 'package:petzyadmin/widgets/common/shimmer_widget.dart';
 import 'package:petzyadmin/bloc/user_search_cubit.dart';
 
 class UsersListPage extends StatelessWidget {

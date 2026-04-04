@@ -1,8 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:petzyadmin/screens/admin_screen.dart';
-import 'package:petzyadmin/screens/signin_page.dart';
+import 'package:petzyadmin/screens/admin/admin_screen.dart';
+import 'signin_page.dart';
 
 class AuthWrapper extends StatelessWidget {
   const AuthWrapper({super.key});

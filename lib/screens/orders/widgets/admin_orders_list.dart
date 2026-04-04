@@ -3,7 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:petzyadmin/bloc/admin_orders_bloc.dart';
 import 'package:petzyadmin/bloc/admin_orders_event.dart';
 import 'package:petzyadmin/bloc/admin_orders_state.dart';
-import 'package:petzyadmin/widgets/admin_order_card.dart';
+import 'admin_order_card.dart';
 
 class AdminOrdersList extends StatelessWidget {
   const AdminOrdersList({super.key});

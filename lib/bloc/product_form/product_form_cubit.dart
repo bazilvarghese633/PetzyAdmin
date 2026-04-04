@@ -55,7 +55,22 @@ class ProductFormCubit extends Cubit<ProductFormState> {
   }
 
   void setImageBytes(List<Uint8List> imageBytes, List<String> imageNames) {
-    emit(state.copyWith(imageBytes: imageBytes, imageNames: imageNames));
+    // Append instead of replace for better UX
+    final List<Uint8List> currentBytes = List.from(state.imageBytes);
+    final List<String> currentNames = List.from(state.imageNames);
+    currentBytes.addAll(imageBytes);
+    currentNames.addAll(imageNames);
+    emit(state.copyWith(imageBytes: currentBytes, imageNames: currentNames));
+  }
+
+  void removeImage(int index) {
+    final List<Uint8List> currentBytes = List.from(state.imageBytes);
+    final List<String> currentNames = List.from(state.imageNames);
+    if (index >= 0 && index < currentBytes.length) {
+      currentBytes.removeAt(index);
+      currentNames.removeAt(index);
+      emit(state.copyWith(imageBytes: currentBytes, imageNames: currentNames));
+    }
   }
 
   void resetForm() {

@@ -4,12 +4,12 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:petzyadmin/bloc/admin_orders_bloc.dart';
 import 'package:petzyadmin/bloc/dashboard_bloc.dart';
 import 'package:petzyadmin/core/colors.dart';
-import 'package:petzyadmin/screens/add_category.dart';
-import 'package:petzyadmin/screens/add_products.dart';
-import 'package:petzyadmin/screens/home.dart';
-import 'package:petzyadmin/screens/orders_screen.dart';
-import 'package:petzyadmin/screens/product_list.dart';
-import 'package:petzyadmin/widgets/shimmer.dart';
+import 'package:petzyadmin/screens/users/users_list_screen.dart';
+import 'package:petzyadmin/screens/add_category/add_category_screen.dart';
+import 'package:petzyadmin/screens/add_product/add_product_screen.dart';
+import 'package:petzyadmin/screens/orders/orders_screen.dart';
+import 'package:petzyadmin/screens/product_list/product_list_screen.dart';
+import 'package:petzyadmin/widgets/common/shimmer_widget.dart';
 
 class AdminDashboard extends StatelessWidget {
   AdminDashboard({super.key});
@@ -48,8 +48,12 @@ class AdminDashboard extends StatelessWidget {
           return Scaffold(
             backgroundColor: whiteColor,
             appBar: AppBar(
-              title: Text(_titles[selectedIndex]),
+              title: Text(
+                _titles[selectedIndex],
+                style: const TextStyle(fontWeight: FontWeight.bold, color: whiteColor),
+              ),
               backgroundColor: primaryColor,
+              foregroundColor: whiteColor,
               centerTitle: true,
               elevation: 0,
               actions: [
@@ -57,7 +61,6 @@ class AdminDashboard extends StatelessWidget {
                   icon: const Icon(Icons.logout),
                   onPressed: _signOut,
                   tooltip: 'Sign Out',
-                  color: whiteColor,
                 ),
               ],
             ),

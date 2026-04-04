@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:convert';
 import 'package:flutter_bloc/flutter_bloc.dart';
+// ignore: unused_import
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:http/http.dart' as http;
 
@@ -36,16 +37,26 @@ class EditProductCubit extends Cubit<EditProductState> {
   EditProductCubit(List<String> initialImages)
     : super(EditProductState.initial(initialImages));
 
-  Future<void> replaceImages(List<File> files) async {
+  Future<void> addImages(List<File> files) async {
     emit(state.copyWith(isLoading: true, error: null));
 
     try {
-      final urls = await _uploadImagesToCloudinary(files);
-      emit(state.copyWith(imageUrls: urls, isLoading: false));
+      final newUrls = await _uploadImagesToCloudinary(files);
+      final List<String> currentUrls = List.from(state.imageUrls);
+      currentUrls.addAll(newUrls);
+      emit(state.copyWith(imageUrls: currentUrls, isLoading: false));
     } catch (e) {
       emit(
         state.copyWith(isLoading: false, error: "Failed to upload images: $e"),
       );
+    }
+  }
+
+  void removeImage(int index) {
+    final List<String> currentUrls = List.from(state.imageUrls);
+    if (index >= 0 && index < currentUrls.length) {
+      currentUrls.removeAt(index);
+      emit(state.copyWith(imageUrls: currentUrls));
     }
   }
 

@@ -3,7 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:petzyadmin/bloc/admin_orders_bloc.dart';
 import 'package:petzyadmin/core/colors.dart';
 import 'package:petzyadmin/core/utils/order_status_helper.dart';
-import 'package:petzyadmin/widgets/order_status_update_dialog.dart';
+import 'package:petzyadmin/widgets/common/dialogs/order_status_update_dialog.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AdminOrderCard extends StatelessWidget {
@@ -30,8 +30,11 @@ class AdminOrderCard extends StatelessWidget {
   Widget _buildVerticalLayout(BuildContext context) {
     return Card(
       color: whiteColor,
-      elevation: 3,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: Colors.grey.shade200),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -54,8 +57,11 @@ class AdminOrderCard extends StatelessWidget {
   Widget _buildHorizontalLayout(BuildContext context) {
     return Card(
       color: whiteColor,
-      elevation: 3,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: Colors.grey.shade200),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Row(
@@ -90,31 +96,43 @@ class AdminOrderCard extends StatelessWidget {
       children: [
         Text(
           'Order #${(order['id'] as String).substring((order['id'] as String).length - 6)}',
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: secondaryColor,
+          ),
         ),
-        _buildStatusChip(),
+        _buildStatusBadge(),
       ],
     );
   }
 
-  Widget _buildStatusChip() {
+  Widget _buildStatusBadge() {
     final status = order['status'] as String;
     final color = OrderStatusHelper.getStatusColor(status);
+    final icon = OrderStatusHelper.getStatusIcon(status);
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.2),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color),
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withOpacity(0.3)),
       ),
-      child: Text(
-        OrderStatusHelper.getStatusDisplayText(status),
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
-          color: color,
-        ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 4),
+          Text(
+            status.toUpperCase(),
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: color,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -124,17 +142,23 @@ class AdminOrderCard extends StatelessWidget {
       children: [
         Row(
           children: [
-            const Icon(Icons.person, size: 16, color: Colors.grey),
+            const Icon(Icons.person, size: 16, color: grey600),
             const SizedBox(width: 8),
-            Text(order['userName'] ?? 'Unknown User'),
+            Text(
+              order['userName'] ?? 'Unknown User',
+              style: const TextStyle(color: secondaryColor, fontSize: 13),
+            ),
           ],
         ),
         const SizedBox(height: 4),
         Row(
           children: [
-            const Icon(Icons.email, size: 16, color: Colors.grey),
+            const Icon(Icons.email, size: 16, color: grey600),
             const SizedBox(width: 8),
-            Text(order['userEmail'] ?? 'No Email'),
+            Text(
+              order['userEmail'] ?? 'No Email',
+              style: const TextStyle(color: grey600, fontSize: 12),
+            ),
           ],
         ),
       ],
@@ -153,18 +177,18 @@ class AdminOrderCard extends StatelessWidget {
 
   Widget _buildProductImage() {
     return ClipRRect(
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(12),
       child: Image.network(
         order['productImage'] ?? '',
-        width: 80,
-        height: 80,
+        width: 70,
+        height: 70,
         fit: BoxFit.cover,
         errorBuilder:
             (_, __, ___) => Container(
-              width: 80,
-              height: 80,
-              color: Colors.grey[300],
-              child: const Icon(Icons.image_not_supported),
+              width: 70,
+              height: 70,
+              color: grey200,
+              child: const Icon(Icons.image_not_supported, color: grey600),
             ),
       ),
     );
@@ -176,20 +200,24 @@ class AdminOrderCard extends StatelessWidget {
       children: [
         Text(
           order['productName'] ?? 'Unknown Product',
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: secondaryColor,
+          ),
         ),
         Text(
           'Category: ${order['productCategory'] ?? 'Unknown'}',
-          style: const TextStyle(fontSize: 12, color: Colors.grey),
+          style: const TextStyle(fontSize: 12, color: grey600),
         ),
         Text(
           'Qty: ${order['quantity'] ?? 0}',
-          style: const TextStyle(fontSize: 12, color: Colors.grey),
+          style: const TextStyle(fontSize: 12, color: grey600),
         ),
         Text(
           '₹${(order['totalAmount'] as num?)?.toStringAsFixed(2) ?? '0.00'}',
           style: const TextStyle(
-            fontSize: 14,
+            fontSize: 15,
             fontWeight: FontWeight.bold,
             color: Colors.green,
           ),
@@ -204,16 +232,18 @@ class AdminOrderCard extends StatelessWidget {
       children: [
         Text(
           'Placed: ${OrderStatusHelper.formatDate(order['createdAt'] as Timestamp?)}',
-          style: const TextStyle(fontSize: 12, color: Colors.grey),
+          style: const TextStyle(fontSize: 12, color: grey600),
         ),
         ElevatedButton(
           onPressed: () => _showStatusUpdateDialog(context),
           style: ElevatedButton.styleFrom(
             backgroundColor: primaryColor,
             foregroundColor: whiteColor,
+            elevation: 0,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           ),
-          child: const Text('Update Status'),
+          child: const Text('Update Status', style: TextStyle(fontWeight: FontWeight.w600)),
         ),
       ],
     );

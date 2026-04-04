@@ -25,6 +25,29 @@ class OrderStatusHelper {
     }
   }
 
+  static IconData getStatusIcon(String status) {
+    switch (status.toLowerCase()) {
+      case 'accepted':
+        return Icons.task_alt;
+      case 'shipped':
+        return Icons.local_shipping;
+      case 'outfordelivery':
+        return Icons.directions_bike;
+      case 'delivered':
+        return Icons.home_filled;
+      case 'pending':
+        return Icons.access_time;
+      case 'paid':
+        return Icons.check_circle;
+      case 'failed':
+        return Icons.error;
+      case 'cancelled':
+        return Icons.cancel;
+      default:
+        return Icons.info;
+    }
+  }
+
   static String getStatusDisplayText(String status) {
     switch (status.toLowerCase()) {
       case 'paid':
@@ -69,11 +92,31 @@ class OrderStatusHelper {
     ];
   }
 
-  static List<Map<String, String>> getUpdateStatusOptions() {
-    return [
+  static List<Map<String, String>> getUpdateStatusOptions(String currentStatus) {
+    const statusOrder = ['pending', 'paid', 'accepted', 'shipped', 'outfordelivery', 'delivered'];
+    final currentIndex = statusOrder.indexOf(currentStatus.toLowerCase());
+
+    // If terminal status or not in sequence, return empty or limit to forward moves
+    final availableOptions = [
       {'value': 'accepted', 'label': 'Accepted'},
       {'value': 'shipped', 'label': 'Shipped'},
-      {'value': 'outForDelivery', 'label': 'Out for Delivery'},
+      {'value': 'outfordelivery', 'label': 'Out for Delivery'},
+      {'value': 'delivered', 'label': 'Delivered'},
+    ];
+
+    return availableOptions.where((option) {
+      final optionIndex = statusOrder.indexOf(option['value']!.toLowerCase());
+      return optionIndex > currentIndex;
+    }).toList();
+  }
+
+  static List<Map<String, String>> getProgressionStatuses() {
+    return [
+      {'value': 'pending', 'label': 'Pending'},
+      {'value': 'paid', 'label': 'Payment Completed'},
+      {'value': 'accepted', 'label': 'Accepted'},
+      {'value': 'shipped', 'label': 'Shipped'},
+      {'value': 'outfordelivery', 'label': 'Out for Delivery'},
       {'value': 'delivered', 'label': 'Delivered'},
     ];
   }

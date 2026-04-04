@@ -7,7 +7,8 @@ import 'package:petzyadmin/bloc/admin_orders_filter_bloc.dart';
 import 'package:petzyadmin/bloc/category_bloc.dart';
 import 'package:petzyadmin/bloc/category_event.dart';
 import 'package:petzyadmin/bloc/product_bloc.dart';
-import 'package:petzyadmin/screens/authwraper_page.dart';
+import 'package:petzyadmin/core/colors.dart';
+import 'package:petzyadmin/screens/auth/auth_wrapper_page.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -52,7 +53,7 @@ class MyApp extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         title: 'Petzy Admin',
         theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+          colorScheme: ColorScheme.fromSeed(seedColor: primaryColor),
           useMaterial3: true,
         ),
         home: const AuthWrapper(),
